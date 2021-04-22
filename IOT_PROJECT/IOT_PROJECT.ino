@@ -2,21 +2,48 @@
 *#################################################
 *The TTTCMR
 *By Daniel Kovzan, Mark Dee, Clintano Perrins and Gatis Berzins
-*Modified By Daniel Kovzan 16:51 11/03/2021
-*
-*
-*
-*
-*
-*
+*Modified By Daniel Kovzan 01:49 19/04/2021
 *#################################################
 */
+#define BLYNK_PRINT Serial 
 #include <Wire.h>
 #include <RTClib.h>
-RTC_DS1302 rtc;
+#include <Bridge.h>
+#include <BlynkSimpleYun.h>
+RTC_DS1307 RTC;
+
+// You should get Auth Token in the Blynk App.
+char auth[] = "YourAuthToken";
 
 static unsigned long lastTick = 0;
-int curMin = 0,curHour = 0;
+int curMin = 0,curHour = 0, userChoice = 0;
+int seconds, minute, hour;
+
+//Blynk Menu Setup, hope it works
+//I think that you need to restart the program eahc time you wish to change timezone since i donty think the program ever returns to this piece of code
+BLYNK_WRITE(V1) {
+  switch (param.asInt())
+  {
+    case 1: // Ireland
+      userChoice = 1;
+      break;
+    case 2: // Russia
+      userChoice = 2;
+      break;
+    case 3: // USA
+      userChoice = 3;
+      break;
+     case 4: // China
+      userChoice = 4;
+      break;
+     case 5: // Germany
+      userChoice = 5;
+      break;
+      
+    default:
+      Serial.println("Unknown item selected");
+  }
+}
 
 //############################################################################
 void setup() {
@@ -25,13 +52,31 @@ void setup() {
     pinMode(i, OUTPUT);
   }
   
+  Serial.begin(9600);
+  Blynk.begin(auth);
+  
   Wire.begin();
-  rtc.begin();
+  RTC.begin();
  
-  DateTime now = rtc.now();
-  second = now.second();
+  DateTime now = RTC.now();
+  seconds = now.second();
   minute = now.minute();
-  hour = now.hour();
+  hour;
+  //TimeZone is chosen by the menu form Blynk
+  //This manually changes the time depedning on the difference from our local timezone
+  //Eg. USA is GMT -4 and since we are GMT +1 then having the hours go -5 would make it American time
+  if(userChoice = 1)//Ireland
+    hour = now.hour();
+  else if(userChoice = 2)//Russia
+    hour = now.hour() + 2;
+  else if(userChoice = 2)//USA
+    hour = now.hour() - 5;
+  else if(userChoice = 2)//China
+    hour = now.hour() + 8;
+  else if(userChoice = 2)//Germany
+    hour = now.hour() + 1;
+  else
+    hour = now.hour();//If the menu fails, we go back to standart time
 }
 
 
@@ -39,11 +84,12 @@ void setup() {
 //##############################################################################
 void loop()
 {
+  Blynk.run();
 //Seconds
 if(millis() -  lastTick >1000)
 {
   lastTick = millis();
-  second++;
+  seconds++;
 }
 //Minutes
 if(seconds >= 60)
@@ -52,7 +98,7 @@ if(seconds >= 60)
   seconds = 0;
 }
 //Hours
-if(currentMinute >= 60)
+if(minute >= 60)
   {
     hour++;
     minute = 0;
